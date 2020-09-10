@@ -29,7 +29,7 @@
 $ python manage.py makemigrations <app-name> : 마이그레이션 파일 생성
 $ python manage.py migrate <app-name> : 마이그레이션 파일을 DB에 적용
 $ python manage.py showmigrations <app-name> : 해당 앱의 마이그레이션 적용 현황
-$ python manage.py sqlmigrate <app-name> <migration-name> : 지정된 마이그레이션의 SQL 코
+$ python manage.py sqlmigrate <app-name> <migration-name> : 지정된 마이그레이션의 SQL 코드 출력
 ```
 
 - 장고 외부에서 이미 설계된 데이터베이스 형상을 관리하는 경우
@@ -404,7 +404,7 @@ class Post(models.Model):
 ### ForeignKey에서 reverse_name
 
 - 1 : N 관계에서 1측에서 사용한다. (1측에는 참조할 이름이 없기 때문)
-- default 속성명은 ***"모델명(소문자)_set"***
+- 디폴트 속성명은 ***"모델명(소문자)_set"***
 - 다만, reverse_name(default)은 모델명만 고려하기 때문에 서로 다른 앱에 같은 이름의 모델이 존재한다면 충돌이 난다. 그럴 경우 reverse_name을 지정해주거나 변경을 하면 된다.
 - .limit_choices_to 옵션을 통해, admin page에서의 선택항목을 제한할 수 있다.
 
@@ -439,7 +439,7 @@ author = ForeignKey(User)
 - ForeignKey(unique=True)와 유사하지만, reverse 차이
     - User:Profile을 FK로 지정한다면 → profile.***user_set.first()*** → user, 값이 없다면 ***None 발생.***
     - User:Profile을  O2O로 지정한다면 → profile.***user*** → user, 예외 처리로 ***DoNotExists 발생.***
-- related_name의 default는 *모델명(소문자)*로 설정된다!
+- related_name의 디폴트는 *모델명(소문자)*로 설정된다!
 
 ### ManyToManyField
 
@@ -456,5 +456,94 @@ class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
     #post_set = models.ManyToManyField(Post)
 ```
+
+---
+
+### Migration
+
+- 모델의 변경 내역을 *데이터베이스 스키마*로 반영시키는 효율적인 방법을 제공.
+- 장고를 통해서 직접 DB 스키마 히스토리를 관리.
+
+```python
+$ python manage.py makemigrations <app-name> : 마이그레이션 파일 생성(입력값 유효성 검사는 하지 않는다)
+$ python manage.py migrate <app-name> : 마이그레이션 파일을 DB에 적용
+$ python manage.py showmigrations <app-name> : 해당 앱의 마이그레이션 적용 현황
+$ python manage.py sqlmigrate <app-name> <migration-name> : 지정된 마이그레이션의 SQL 코드 출력
+
+# 장고 프로젝트를 처음 생성하면, **기본 앱들에 대한 migration**을 위해 python manage.py migrate 실행!
+# makemigrations, migrate 명령을 수행할 때 **app-name을 지정**해주는 것이 좋다.(예상치 못한 migrations을 피할 수 있고, 빠르고 명확하다.)
+# migrate 명령 이전에 sqlmigrate 명령을 통해, **적용될 SQL 쿼리를 확인하는 습관**이 필요하다.
+```
+
+### Migration 파일
+
+- *데이터베이스에 어떤 변화*를 가하는 명령들을 List 형태로 나열.
+- ***makemigrations 명령***을 통해서 대개 ***모델로부터 자동 생성***된다.
+- 같은 migration 파일이라도 DB 종류에 따라 다른 SQL이 생성된다.
+
+![%E1%84%8C%E1%85%A1%E1%86%BC%E1%84%80%E1%85%A9%20Models%209dd150cbcf7e473685eed7fa20b4426d/Untitled.png](%E1%84%8C%E1%85%A1%E1%86%BC%E1%84%80%E1%85%A9%20Models%209dd150cbcf7e473685eed7fa20b4426d/Untitled.png)
+
+- 모델 필드와 관련된 어떠한 변경이라도 발생 시에 migration 파일이 생성된다. 예를 들어 모델의 member function 구현 시에 **실제 DB 스키마에 가해지는 변화가 없더라도 수행**한다.
+- migration 파일은 ***모델의 변경 내역을 누적***하는 역할을 한다.
+- **적용된 migration 파일은 절대로 삭제하면 안된다.** 만약 파일의 수가 너무 많다면 squashmigrations 명령을 통해 여러 migration 파일을 통합할 수 있다.(rollback으로 인한 미적용 파일은 삭제해도 괜찮다)
+
+### 마이그레이션 migrate (Forward-Backward)
+
+```python
+$ python manage.py migrate <app-name>
+# 미적용 migration 파일부터 최근 migration 파일까지 순차적으로 수행한다.**(Forward)**
+
+$ python manage.py migrate <app-name> <migration-name>
+# 지정된 migration 파일이 현재 적용된 migration 보다
+# 이후라면, 정방향으로 지정 migration까지 **Forward** 수행.
+# 이전이라면, 역방향으로 지정 migration까지 **Backward** 수행.
+```
+
+### Migration 이름 지정
+
+- 전체 파일명을 지정하지 않더라도, 판독이 가능하다면 파일명 일부로도 지정이 가능하다.
+
+```python
+# 파일명 예시
+blog/migrations/0001_initial.py
+blog/migrations/0002_create_field.py
+blog/migrations/0002_update_field.py
+
+python manage.py migrate blog 0001 # OK
+python manage.py migrate blog 0002 # FAIL (다수 파일 해당)
+python manage.py migrate blog zero # 해당 앱의 모든 migration을 rollback
+```
+
+### Migration 순서
+
+- 마이그레이션 순서는 **각** **migration 파일의 dependency**에 따라 정의
+
+```python
+# migration file
+from django.db import migrations, models
+
+class Migration(migrations.Migration):
+	dependencies = [
+		('shop', '0001_initial'), # 다음 migration 순서를 지정
+	]
+	operation = [
+		...
+	]
+```
+
+### id 필드
+
+- 모든 DB 테이블에는 각 Row의 식별 기준인 기본키(Primary Key)가 필요
+- 장고에서는 기본키로 id(AutoField)가 디폴트 생성
+- 다른 필드를 기본키로 사용하고 싶다면 primary_key = True 옵션을 적용(가급적 id 필드 사용 권장)
+
+### 기존 모델 클래스에 필수 필드 추가
+
+- 필드 옵션 blank, null의 디폴트는 False이다. 따라서 기본적으로 모든 필드는 필수 필드이다.
+- 만약 새로운 필수 필드를 추가해서 makemigrations를 수행하면, ***기존에 있는 레코드에 대해서 어떤 값을 채워 넣을지*** 설정해야한다.(새로 추가되는 필수 필드가 3개라면, 해당 질문이 3번 돈다)
+
+    *선택1. 지금 값을 입력*
+
+    *선택2. 명령 수행을 중단*
 
 ---
