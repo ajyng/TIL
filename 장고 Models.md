@@ -481,7 +481,7 @@ $ python manage.py sqlmigrate <app-name> <migration-name> : 지정된 마이그�
 - ***makemigrations 명령***을 통해서 대개 ***모델로부터 자동 생성***된다.
 - 같은 migration 파일이라도 DB 종류에 따라 다른 SQL이 생성된다.
 
-![%E1%84%8C%E1%85%A1%E1%86%BC%E1%84%80%E1%85%A9%20Models%209dd150cbcf7e473685eed7fa20b4426d/Untitled.png](%E1%84%8C%E1%85%A1%E1%86%BC%E1%84%80%E1%85%A9%20Models%209dd150cbcf7e473685eed7fa20b4426d/Untitled.png)
+![Untitled](https://user-images.githubusercontent.com/67837091/92785913-c581d480-f3e2-11ea-98e9-70bfb2246a16.png)
 
 - 모델 필드와 관련된 어떠한 변경이라도 발생 시에 migration 파일이 생성된다. 예를 들어 모델의 member function 구현 시에 **실제 DB 스키마에 가해지는 변화가 없더라도 수행**한다.
 - migration 파일은 ***모델의 변경 내역을 누적***하는 역할을 한다.
